@@ -1,0 +1,62 @@
+@startuml Kinobezdna Container Diagram
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+
+Person(user, "Пользователь", "Пользуется приложением")
+
+System_Boundary(kb_system, "Кинобездна") {
+    Container(api_gateway, "API Gateway", , "Единая точка входа", $tags="gateway")
+
+    Container(auth_service, "Auth Service", "Python", "Аутентификация и авторизация", $tags="microservice")
+    Container(user_profile_service, "User Profile Service", "Python", "Управление профилями", $tags="microservice")
+    Container(content_service, "Content Service", "Python", "Управление видео контентом и метаданными", $tags="microservice")
+    Container(payment_service, "Payment Service", "Python", "Обработка платежей и подписок", $tags="microservice")
+    Container(recommendation_service, "Recommendation Service", "Python", "Создание рекомендаций", $tags="microservice")
+    Container(notification_service, "Notification Service", "Python", "Уведомления пользователей", $tags="microservice")
+    Container(loyalty_service, "Loyalty Service", "Python", "Программа лояльности и скидки", $tags="microservice")
+
+    ContainerDb(user_db, "User Database", "PostgreSQL", "Хранение данных пользователей", $tags="storage")
+    ContainerDb(content_db, "Content Database", "PostgreSQL", "Хранение метаданных о фильмах", $tags="storage")
+    ContainerDb(payment_db, "Payment Database", "PostgreSQL", "Хранение платежей и подписок", $tags="storage")
+
+    Container(kafka, "Event Bus", "Apache Kafka", "Асинхронная коммуникация между сервисами", $tags="eventBus")
+
+    Container(web_app, "Web Application", "Vue", "Веб-интерфейс для пользователей", $tags="microservice")
+    Container(mobile_app, "Mobile App", "React Native", "Мобильное приложение", $tags="microservice")
+    Container(tv_app, "Smart TV App", "Vue", "Приложение для Smart TV", $tags="microservice")
+}
+
+System_Ext(recommendation_system, "External Recommendation System", "Сторонняя рекомендательная система", $tags="external")
+System_Ext(payment_providers, "Payment Providers", "Платежные системы", $tags="external")
+System_Ext(content_providers, "Content Providers", "Поставщики контента", $tags="external")
+System_Ext(analytics_service, "Analytics Service", "Сервис аналитики", $tags="external")
+
+Rel(user, api_gateway, "HTTPS")
+Rel(api_gateway, auth_service, "HTTP")
+Rel(api_gateway, user_profile_service, "HTTP")
+Rel(api_gateway, content_service, "HTTP")
+Rel(api_gateway, payment_service, "HTTP")
+Rel(api_gateway, recommendation_service, "HTTP")
+Rel(api_gateway, loyalty_service, "HTTP")
+
+Rel(auth_service, user_db, "Sqlalchemy")
+Rel(user_profile_service, user_db, "Sqlalchemy")
+Rel(content_service, content_db, "Sqlalchemy")
+Rel(payment_service, payment_db, "Sqlalchemy")
+
+Rel(content_service, kafka, "Publish/Subscribe")
+Rel(recommendation_service, kafka, "Publish/Subscribe")
+Rel(notification_service, kafka, "Publish/Subscribe")
+Rel(loyalty_service, kafka, "Publish/Subscribe")
+
+Rel(recommendation_service, recommendation_system, "HTTPS")
+Rel(payment_service, payment_providers, "HTTPS")
+Rel(content_service, content_providers, "HTTPS")
+Rel(notification_service, analytics_service, "HTTPS")
+
+Rel(web_app, api_gateway, "HTTPS")
+Rel(mobile_app, api_gateway, "HTTPS")
+Rel(tv_app, api_gateway, "HTTPS")
+
+@enduml
