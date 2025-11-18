@@ -1,18 +1,18 @@
-{{- if .Values.proxyService.enabled }}
+{{- if .Values.eventsService.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: proxy-service
+  name: events-service
   namespace: {{ .Values.global.namespace }}
   labels:
-    app: proxy-service
+    app: events-service
     app.kubernetes.io/name: {{ include "cinemaabyss.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.proxyService.replicas }}
+  replicas: {{ .Values.eventsService.replicas }}
   selector:
     matchLabels:
-      app: proxy-service
+      app: events-service
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -21,22 +21,57 @@ spec:
   template:
     metadata:
       labels:
-        app: proxy-service
+        app: events-service
     spec:
       containers:
-      - name: proxy-service
-        ..... тут
+      - name: events-service
+        image: {{ .Values.eventsService.image.repository }}:{{ .Values.eventsService.image.tag }}
+        imagePullPolicy: {{ .Values.eventsService.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.eventsService.service.targetPort }}
+        env:
+        - name: PORT
+          value: "{{ .Values.eventsService.service.targetPort }}"
+        - name: KAFKA_BROKER
+          value: "kafka:9092"
+        envFrom:
+        - configMapRef:
+            name: cinemaabyss-config
+        - secretRef:
+            name: cinemaabyss-secrets
+        resources: {{- toYaml .Values.eventsService.resources | nindent 10 }}
+        readinessProbe:
+          httpGet:
+            path: /api/events/health
+            port: {{ .Values.eventsService.service.targetPort }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/events/health
+            port: {{ .Values.eventsService.service.targetPort }}
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: dockerconfigjson
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: proxy-service
+  name: events-service
   namespace: {{ .Values.global.namespace }}
   labels:
-    app: proxy-service
+    app: events-service
     app.kubernetes.io/name: {{ include "cinemaabyss.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.eventsService.service.port }}
+      targetPort: {{ .Values.eventsService.service.targetPort }}
+      protocol: TCP
+      name: http
   selector:
-    ... и тут
+    app: events-service
 {{- end }}
