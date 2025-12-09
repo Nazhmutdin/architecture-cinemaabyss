@@ -18,53 +18,19 @@ async def health():
     return {"status": "ok"}
 
 
-@app.api_route("/api/movies/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def proxy_movies(request: Request, path: str):
-    use_new = GRADUAL and random.randint(1, 100) <= PERCENT
-    target = MOVIES_SERVICE_URL if use_new else MONOLITH_URL
-    url = f"{target}/api/movies/{path}"
-
-    async with httpx.AsyncClient() as client:
-        req = client.build_request(
-            method=request.method,
-            url=url,
-            headers=dict(request.headers),
-            content=await request.body(),
-        )
-        resp = await client.send(req)
-
-    return Response(
-        content=resp.content,
-        status_code=resp.status_code,
-        headers=dict(resp.headers),
-    )
-
-
-@app.api_route("/api/events/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def proxy_events(request: Request, path: str):
-    use_new = GRADUAL and random.randint(1, 100) <= PERCENT
-    target = EVENTS_SERVICE_URL if use_new else MONOLITH_URL
-    url = f"{target}/api/events/{path}"
-
-    async with httpx.AsyncClient() as client:
-        req = client.build_request(
-            method=request.method,
-            url=url,
-            headers=dict(request.headers),
-            content=await request.body(),
-        )
-        resp = await client.send(req)
-
-    return Response(
-        content=resp.content,
-        status_code=resp.status_code,
-        headers=dict(resp.headers),
-    )
-
-
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def proxy_fallback(request: Request, path: str):
-    url = f"{MONOLITH_URL}/{path}"
+    if "api/movies" in path:
+        use_new = GRADUAL and random.randint(1, 100) <= PERCENT
+        target = MOVIES_SERVICE_URL if use_new else MONOLITH_URL
+        url = f"{target}/api/movies/{path}"
+    elif "api/events" in path:
+        use_new = GRADUAL and random.randint(1, 100) <= PERCENT
+        target = EVENTS_SERVICE_URL if use_new else MONOLITH_URL
+        url = f"{target}/api/events/{path}"
+    else:
+        url = f"{MONOLITH_URL}/{path}"
+
     async with httpx.AsyncClient() as client:
         req = client.build_request(
             method=request.method,
