@@ -73,7 +73,7 @@ spec:
         readinessProbe:
           tcpSocket:
             port: 2181
-          initialDelaySeconds: 10
+          initialDelaySeconds: 90
           periodSeconds: 10
         livenessProbe:
           tcpSocket:
