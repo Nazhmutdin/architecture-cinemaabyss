@@ -25,9 +25,7 @@ async def proxy_fallback(request: Request, path: str):
         target = MOVIES_SERVICE_URL if use_new else MONOLITH_URL
         url = f"{target}/{path}"
     elif "api/events" in path:
-        use_new = GRADUAL and random.randint(1, 100) <= PERCENT
-        target = EVENTS_SERVICE_URL if use_new else MONOLITH_URL
-        url = f"{target}/{path}"
+        url = f"{EVENTS_SERVICE_URL}/{path}"
     else:
         url = f"{MONOLITH_URL}/{path}"
 
