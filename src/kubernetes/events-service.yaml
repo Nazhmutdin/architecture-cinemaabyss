@@ -27,7 +27,7 @@ spec:
         ports:
         - containerPort: 8082
         env:
-        - name: KAFKA_HOST
+        - name: KAFKA_BOOTSTRAP_SERVERS
           value: "kafka:9092"
         envFrom:
         - configMapRef:

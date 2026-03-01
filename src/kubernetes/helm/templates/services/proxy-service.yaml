@@ -1,18 +1,18 @@
-{{- if .Values.eventsService.enabled }}
+{{- if .Values.proxyService.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: events-service
+  name: proxy-service
   namespace: {{ .Values.global.namespace }}
   labels:
-    app: events-service
+    app: proxy-service
     app.kubernetes.io/name: {{ include "cinemaabyss.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  replicas: {{ .Values.eventsService.replicas }}
+  replicas: {{ .Values.proxyService.replicas }}
   selector:
     matchLabels:
-      app: events-service
+      app: proxy-service
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -21,35 +21,36 @@ spec:
   template:
     metadata:
       labels:
-        app: events-service
+        app: proxy-service
     spec:
       containers:
-      - name: events-service
-        image: {{ .Values.eventsService.image.repository }}:{{ .Values.eventsService.image.tag }}
-        imagePullPolicy: {{ .Values.eventsService.image.pullPolicy }}
+      - name: proxy-service
+        image: {{ .Values.proxyService.image.repository }}:{{ .Values.proxyService.image.tag }}
+        imagePullPolicy: {{ .Values.proxyService.image.pullPolicy }}
         ports:
-        - containerPort: {{ .Values.eventsService.service.targetPort }}
+        - containerPort: {{ .Values.proxyService.service.targetPort }}
         env:
         - name: PORT
-          value: "{{ .Values.eventsService.service.targetPort }}"
-        - name: KAFKA_BROKER
-          value: "kafka:9092"
+          value: "{{ .Values.proxyService.service.targetPort }}"
+        - name: DB_CONNECTION_STRING
+          value: "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable"
         envFrom:
         - configMapRef:
             name: cinemaabyss-config
         - secretRef:
             name: cinemaabyss-secrets
-        resources: {{- toYaml .Values.eventsService.resources | nindent 10 }}
+        resources:
+          {{- toYaml .Values.proxyService.resources | nindent 10 }}
         readinessProbe:
           httpGet:
-            path: /api/events/health
-            port: {{ .Values.eventsService.service.targetPort }}
+            path: /api/proxy/health
+            port: {{ .Values.proxyService.service.targetPort }}
           initialDelaySeconds: 5
           periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /api/events/health
-            port: {{ .Values.eventsService.service.targetPort }}
+            path: /api/proxy/health
+            port: {{ .Values.proxyService.service.targetPort }}
           initialDelaySeconds: 15
           periodSeconds: 20
       restartPolicy: Always
@@ -59,19 +60,17 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: events-service
+  name: proxy-service
   namespace: {{ .Values.global.namespace }}
   labels:
-    app: events-service
+    app: proxy-service
     app.kubernetes.io/name: {{ include "cinemaabyss.name" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
-  type: ClusterIP
-  ports:
-    - port: {{ .Values.eventsService.service.port }}
-      targetPort: {{ .Values.eventsService.service.targetPort }}
-      protocol: TCP
-      name: http
   selector:
-    app: events-service
+    app: proxy-service
+  ports:
+  - port: {{ .Values.proxyService.service.port }}
+    targetPort: {{ .Values.proxyService.service.targetPort }}
+  type: {{ .Values.proxyService.service.type }}
 {{- end }}
